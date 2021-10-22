@@ -1,0 +1,16 @@
+name = "ga-api"
+type = "javascript"
+zone_id = "f1974a146d724072fffc180fa3c097a1"
+account_id = "9d5a66033268ccdf77b19d50cc3d4e5d"
+route = "api.maximoguk.com/*"
+workers_dev = false
+compatibility_date = "2021-10-21"
+
+kv_namespaces = [ 
+    { binding = "POSTS", preview_id = "1052170edfe248a495459e17fa1987bc", id = "f910844407a84f0d93021bc49f115a02" },
+]
+
+[build]
+command = "pnpm install && pnpm run build"
+[build.upload]
+format = "service-worker"
