@@ -22,6 +22,7 @@ export default class Posts {
   private title: string;
   private userName: string;
   private content: string;
+  private photo: string;
   private upVotes: string[] = [];
   private reactions = [] as reactionsTypes[];
   private comments = [] as commentsTypes[];
@@ -30,6 +31,7 @@ export default class Posts {
     title: string,
     userName: string,
     content: string,
+    photo: string,
     upVotes: string[],
     reactions: reactionsTypes[],
     comments: commentsTypes[],
@@ -43,12 +45,16 @@ export default class Posts {
     this.title = title;
     this.userName = userName;
     this.content = content;
+    this.photo = photo;
     this.upVotes = upVotes;
     this.reactions = reactions;
     this.comments = comments;
   }
 
   //getters
+  public getPostId(): string {
+    return this.postId;
+  }
   public getTitle(): string {
     return this.title;
   }
@@ -58,8 +64,8 @@ export default class Posts {
   public getContent(): string {
     return this.content;
   }
-  public getPostId(): string {
-    return this.postId;
+  public getPhoto(): string {
+    return this.photo;
   }
   public getUpvotes(): string[] {
     return this.upVotes;
@@ -73,9 +79,15 @@ export default class Posts {
   //setters
   public setTitle(title: string): void {
     this.title = title;
+    POSTS.put(this.getPostId(), this.toString());
   }
   public setContent(content: string): void {
     this.content = content;
+    POSTS.put(this.getPostId(), this.toString());
+  }
+  public setPhoto(photo: string): void {
+    this.photo = photo;
+    POSTS.put(this.getPostId(), this.toString());
   }
 
   //post upvoting
@@ -239,9 +251,10 @@ export default class Posts {
       title: this.getTitle(),
       userName: this.getUserName(),
       content: this.getContent(),
-      upVotes: this.getUpvotes().toString(),
-      reactions: this.getReactions().toString(),
-      comments: this.getComments().toString(),
+      photoUrl: this.getPhoto(),
+      upVotes: this.getUpvotes(),
+      reactions: this.getReactions(),
+      comments: this.getComments(),
     });
   }
 }

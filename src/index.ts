@@ -3,6 +3,7 @@ import Posts from './classes/Posts';
 import ValidationError from './classes/ValidationError';
 import validateJson from './components/validateJson';
 import validateParametersCheckMissing from './components/validateParametersCheckMissing';
+import verifyPhotoUpload from './components/verifyPhotoUpload';
 import uuidValidateV1 from './components/uuidValidateV1';
 
 declare const POSTS: KVNamespace;
@@ -19,24 +20,36 @@ router.get('/posts', async () => {
   return new Response('[' + listOfPosts.toString() + ']');
 });
 
-router.get('/posts/:postId', async () => {
-  const listOfKeys = await POSTS.list();
-  const listOfPosts = [];
-  for (const key of listOfKeys.keys) {
-    listOfPosts.push(await POSTS.get(key.name));
+router.get('/posts/:postId', async ({ params }) => {
+  if (!params || !params.postId) {
+    return new Response('No postId specified in request params', { status: 400 });
+  } else {
+    if (!uuidValidateV1(params.postId)) {
+      return new Response('Invalid postId', { status: 400 });
+    }
   }
-  return new Response('[' + listOfPosts.toString() + ']');
+  const post = await POSTS.get(params.postId);
+  if (!post) {
+    return new Response('No post found under that id', { status: 404 });
+  }
+  return new Response(post);
 });
 
 router.post('/posts', async (request: Request) => {
   try {
     const requestJson = await validateJson(request);
-    const validParams = ['title', 'userName', 'content'];
+    if (!requestJson.photo) {
+      requestJson.photo = '';
+    } else {
+      verifyPhotoUpload(requestJson.photo);
+    }
+    const validParams = ['title', 'userName', 'content', 'photo'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
     const newPost = new Posts(
       requestJson.title,
       requestJson.userName,
       requestJson.content,
+      requestJson.photo,
       [],
       [],
       [],
