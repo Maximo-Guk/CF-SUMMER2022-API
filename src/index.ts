@@ -19,6 +19,15 @@ router.get('/posts', async () => {
   return new Response('[' + listOfPosts.toString() + ']');
 });
 
+router.get('/posts/:postId', async () => {
+  const listOfKeys = await POSTS.list();
+  const listOfPosts = [];
+  for (const key of listOfKeys.keys) {
+    listOfPosts.push(await POSTS.get(key.name));
+  }
+  return new Response('[' + listOfPosts.toString() + ']');
+});
+
 router.post('/posts', async (request: Request) => {
   try {
     const requestJson = await validateJson(request);
@@ -28,8 +37,11 @@ router.post('/posts', async (request: Request) => {
       requestJson.title,
       requestJson.userName,
       requestJson.content,
+      [],
+      [],
+      [],
     );
-    POSTS.put(newPost.getId(), newPost.toString());
+    POSTS.put(newPost.getPostId(), newPost.toString());
     return new Response('Sucessfully created new post!');
   } catch (error) {
     if (error instanceof ValidationError) {

@@ -15,8 +15,7 @@ export default function validateParameters(
       if (invalidParameters) {
         invalidParameters = invalidParameters + ', ' + parameter;
       } else {
-        invalidParameters =
-          'The following parameter(s) are invalid: ' + parameter;
+        invalidParameters = 'The following parameter(s) are invalid: ' + parameter;
       }
     }
   });
