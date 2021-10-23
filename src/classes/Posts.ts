@@ -130,14 +130,14 @@ export default class Posts {
 
   public async removeReaction(userName: string): Promise<void> {
     const newReactions = this.getReactions();
-    newReactions.forEach((reaction, index) => {
+    for (const [index, reaction] of newReactions.entries()) {
       if (reaction.userName === userName) {
         newReactions.splice(index, 1);
         this.reactions = newReactions;
         POSTS.put(this.getPostId(), this.toString());
         return;
       }
-    });
+    }
     throw new ValidationError('User has not reacted', 400);
   }
 
@@ -158,49 +158,53 @@ export default class Posts {
     POSTS.put(this.getPostId(), this.toString());
   }
 
-  public async removeComment(userName: string): Promise<void> {
+  public async removeComment(userName: string, commentId: string): Promise<void> {
     const newComments = this.getComments();
-    newComments.forEach((comment, index) => {
-      if (comment.userName === userName) {
+    for (const [index, comment] of newComments.entries()) {
+      if (comment.commentId === commentId && comment.userName === userName) {
         newComments.splice(index, 1);
         this.comments = newComments;
         POSTS.put(this.getPostId(), this.toString());
         return;
+      } else if (comment.commentId === commentId) {
+        throw new ValidationError('User has not commented', 400);
       }
-    });
-
-    throw new ValidationError('User has not commented', 400);
+    }
+    throw new ValidationError('Comment not found', 404);
   }
 
   //comment upvote
 
   public async addCommentUpVote(userName: string, commentId: string): Promise<void> {
     const newCommentUpVote = this.getComments();
-    newCommentUpVote.forEach((comment, index) => {
-      if (comment.upVotes.includes(userName) && comment.commentId === commentId) {
+    for (const [index, comment] of newCommentUpVote.entries()) {
+      if (comment.commentId === commentId && comment.upVotes.includes(userName)) {
         throw new ValidationError('User has already upvoted this comment', 400);
       } else if (comment.commentId === commentId) {
         newCommentUpVote[index].upVotes.push(userName);
+        this.comments = newCommentUpVote;
+        POSTS.put(this.getPostId(), this.toString());
+        return;
       }
-    });
-    this.comments = newCommentUpVote;
-    POSTS.put(this.getPostId(), this.toString());
+    }
+    throw new ValidationError('Comment not found', 404);
   }
 
   public async removeCommentUpVote(userName: string, commentId: string): Promise<void> {
     const newCommentUpVote = this.getComments();
-    newCommentUpVote.forEach((comment, index) => {
-      if (comment.upVotes.includes(userName) && comment.commentId === commentId) {
+    for (const [index, comment] of newCommentUpVote.entries()) {
+      if (comment.commentId === commentId && comment.upVotes.includes(userName)) {
         newCommentUpVote[index].upVotes.splice(
           newCommentUpVote[index].upVotes.indexOf(userName, 1),
         );
+        this.comments = newCommentUpVote;
+        POSTS.put(this.getPostId(), this.toString());
         return;
       } else if (comment.commentId === commentId) {
         throw new ValidationError('User has not upvoted this comment', 400);
       }
-    });
-    this.comments = newCommentUpVote;
-    POSTS.put(this.getPostId(), this.toString());
+    }
+    throw new ValidationError('Comment not found', 404);
   }
 
   //end of comment upvote
@@ -213,33 +217,45 @@ export default class Posts {
     type: string,
   ): Promise<void> {
     const newCommentReaction = this.getComments();
-    newCommentReaction.forEach((comment, index) => {
-      comment.reactions.forEach((reaction) => {
-        if (comment.commentId === commentId && reaction.userName === userName) {
-          throw new ValidationError('User has already reacted to this comment', 400);
-        } else if (comment.commentId) {
-          newCommentReaction[index].reactions.push({ userName: userName, type: type });
+    for (const [index, comment] of newCommentReaction.entries()) {
+      if (comment.commentId === commentId && comment.reactions.length !== 0) {
+        for (const reaction of comment.reactions) {
+          if (reaction.userName === userName) {
+            throw new ValidationError('User has already reacted to this comment', 400);
+          } else if (comment.commentId) {
+            newCommentReaction[index].reactions.push({ userName: userName, type: type });
+            this.comments = newCommentReaction;
+            POSTS.put(this.getPostId(), this.toString());
+            return;
+          }
         }
-      });
-    });
-    this.comments = newCommentReaction;
-    POSTS.put(this.getPostId(), this.toString());
+      } else if (comment.commentId === commentId) {
+        newCommentReaction[index].reactions.push({ userName: userName, type: type });
+        this.comments = newCommentReaction;
+        POSTS.put(this.getPostId(), this.toString());
+        return;
+      }
+    }
+    throw new ValidationError('Comment not found', 404);
   }
 
   public async removeCommentReaction(userName: string, commentId: string): Promise<void> {
     const newCommentReaction = this.getComments();
-    newCommentReaction.forEach((comment, index) => {
-      comment.reactions.forEach((reaction, index2) => {
-        if (comment.commentId === commentId && reaction.userName === userName) {
-          newCommentReaction[index].reactions.splice(index2, 1);
-          this.comments = newCommentReaction;
-          POSTS.put(this.getPostId(), this.toString());
-          return;
-        } else if (comment.commentId) {
-          throw new ValidationError('User has not reacted to this comment', 400);
+    for (const [index, comment] of newCommentReaction.entries()) {
+      if (comment.commentId === commentId) {
+        for (const [index2, reaction] of comment.reactions.entries()) {
+          if (reaction.userName === userName) {
+            newCommentReaction[index].reactions.splice(index2, 1);
+            this.comments = newCommentReaction;
+            POSTS.put(this.getPostId(), this.toString());
+            return;
+          } else if (comment.commentId) {
+            throw new ValidationError('User has not reacted to this comment', 400);
+          }
         }
-      });
-    });
+      }
+    }
+    throw new ValidationError('Comment not found', 404);
   }
 
   //end of comment reaction

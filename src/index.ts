@@ -1,10 +1,12 @@
 import { Router } from 'itty-router';
 import Posts from './classes/Posts';
 import requestPostId from './types/requestPostId';
+import requestCommentId from './types/requestCommentId';
 import ValidationError from './classes/ValidationError';
 import validateJson from './components/validateJson';
 import validateParametersCheckMissing from './components/validateParametersCheckMissing';
 import verifyPhotoUpload from './components/verifyPhotoUpload';
+import validateReactionType from './components/validateReactionType';
 import uuidValidateV1 from './components/uuidValidateV1';
 
 declare const POSTS: KVNamespace;
@@ -26,13 +28,16 @@ router.get('/posts', async () => {
 router.post('/posts', async (request) => {
   try {
     const requestJson = await validateJson(request);
+
     if (!requestJson.photo) {
       requestJson.photo = '';
     } else {
       verifyPhotoUpload(requestJson.photo);
     }
+
     const validParams = ['title', 'userName', 'content', 'photo'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
     const newPost = new Posts(
       requestJson.title,
       requestJson.userName,
@@ -42,6 +47,7 @@ router.post('/posts', async (request) => {
       [],
       [],
     );
+
     POSTS.put(newPost.getPostId(), newPost.toString());
     return new Response('Sucessfully created new post!');
   } catch (error) {
@@ -71,13 +77,15 @@ router.get('/posts/:postId', async (request: requestPostId) => {
 router.post('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
-    if (!requestJson.userName) {
-      return new Response('Please include a userName as a parameter', { status: 404 });
-    }
+
+    const validParams = ['userName'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return new Response('No post found under that id', { status: 404 });
     }
+
     const parsedPost = JSON.parse(storedPost);
     const post = new Posts(
       parsedPost.title,
@@ -98,6 +106,341 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
     }
   }
 });
+
+//remove upvote post
+router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['userName'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.removeUpvote(requestJson.userName);
+    return new Response('Sucessfully removed upvote on post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//react to post
+router.post('/posts/:postId/react', async (request: requestPostId) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['userName', 'type'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const reactionType = requestJson.type.split(/(?!$)/u)[0];
+    validateReactionType(reactionType);
+
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.addReaction(requestJson.userName, reactionType);
+    return new Response('Sucessfully upvoted post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//remove reaction to post
+router.delete('/posts/:postId/react', async (request: requestPostId) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['userName'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.removeReaction(requestJson.userName);
+    return new Response('Sucessfully removed reaction from post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//comment on post
+router.post('/posts/:postId/comments', async (request: requestPostId) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['userName', 'content'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.addComment(requestJson.userName, requestJson.content);
+    return new Response('Sucessfully commented on post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//verify postId middleware
+router.all('/posts/:postId/comments/:commentId', (request: requestCommentId) => {
+  if (!uuidValidateV1(request.params.commentId)) {
+    return new Response('Invalid commentId', { status: 400 });
+  }
+});
+
+//delete post comment by commentId
+router.delete('/posts/:postId/comments/:commentId', async (request: requestCommentId) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['userName'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.removeComment(requestJson.userName, request.params.commentId);
+    return new Response('Sucessfully deleted comment on post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//upvote comment by commentId
+router.post(
+  '/posts/:postId/comments/:commentId/upvote',
+  async (request: requestCommentId) => {
+    try {
+      const requestJson = await validateJson(request);
+
+      const validParams = ['userName'];
+      validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+      const storedPost = await POSTS.get(request.params.postId);
+      if (!storedPost) {
+        return new Response('No post found under that id', { status: 404 });
+      }
+
+      const parsedPost = JSON.parse(storedPost);
+      const post = new Posts(
+        parsedPost.title,
+        parsedPost.userName,
+        parsedPost.content,
+        parsedPost.photo,
+        parsedPost.upVotes,
+        parsedPost.reactions,
+        parsedPost.comments,
+        request.params.postId,
+      );
+
+      await post.addCommentUpVote(requestJson.userName, request.params.commentId);
+      return new Response('Sucessfully upvoted commented!');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return new Response(error.message, { status: error.code });
+      }
+    }
+  },
+);
+
+//remove comment upvote by commentId
+router.delete(
+  '/posts/:postId/comments/:commentId/upvote',
+  async (request: requestCommentId) => {
+    try {
+      const requestJson = await validateJson(request);
+
+      const validParams = ['userName'];
+      validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+      const storedPost = await POSTS.get(request.params.postId);
+      if (!storedPost) {
+        return new Response('No post found under that id', { status: 404 });
+      }
+
+      const parsedPost = JSON.parse(storedPost);
+      const post = new Posts(
+        parsedPost.title,
+        parsedPost.userName,
+        parsedPost.content,
+        parsedPost.photo,
+        parsedPost.upVotes,
+        parsedPost.reactions,
+        parsedPost.comments,
+        request.params.postId,
+      );
+
+      await post.removeCommentUpVote(requestJson.userName, request.params.commentId);
+      return new Response('Sucessfully removed upvote on comment!');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return new Response(error.message, { status: error.code });
+      }
+    }
+  },
+);
+
+//react to comment by commentId
+router.post(
+  '/posts/:postId/comments/:commentId/react',
+  async (request: requestCommentId) => {
+    try {
+      const requestJson = await validateJson(request);
+
+      const validParams = ['userName', 'type'];
+      validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+      const reactionType = requestJson.type.split(/(?!$)/u)[0];
+      validateReactionType(reactionType);
+
+      const storedPost = await POSTS.get(request.params.postId);
+      if (!storedPost) {
+        return new Response('No post found under that id', { status: 404 });
+      }
+
+      const parsedPost = JSON.parse(storedPost);
+      const post = new Posts(
+        parsedPost.title,
+        parsedPost.userName,
+        parsedPost.content,
+        parsedPost.photo,
+        parsedPost.upVotes,
+        parsedPost.reactions,
+        parsedPost.comments,
+        request.params.postId,
+      );
+
+      await post.addCommentReaction(
+        requestJson.userName,
+        request.params.commentId,
+        reactionType,
+      );
+      return new Response('Sucessfully reacted to comment!');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return new Response(error.message, { status: error.code });
+      }
+    }
+  },
+);
+
+//remove reaction to comment by commentId
+router.delete(
+  '/posts/:postId/comments/:commentId/react',
+  async (request: requestCommentId) => {
+    try {
+      const requestJson = await validateJson(request);
+
+      const validParams = ['userName'];
+      validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+      const storedPost = await POSTS.get(request.params.postId);
+      if (!storedPost) {
+        return new Response('No post found under that id', { status: 404 });
+      }
+
+      const parsedPost = JSON.parse(storedPost);
+      const post = new Posts(
+        parsedPost.title,
+        parsedPost.userName,
+        parsedPost.content,
+        parsedPost.photo,
+        parsedPost.upVotes,
+        parsedPost.reactions,
+        parsedPost.comments,
+        request.params.postId,
+      );
+
+      await post.removeCommentReaction(requestJson.userName, request.params.commentId);
+      return new Response('Sucessfully removed reaction from comment!');
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return new Response(error.message, { status: error.code });
+      }
+    }
+  },
+);
 
 /*
 This is the last route we define, it will match anything that hasn't hit a route we've defined
