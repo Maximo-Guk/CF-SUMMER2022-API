@@ -248,10 +248,11 @@ export default class Posts {
 
   toString(): string {
     return JSON.stringify({
+      postId: this.getPostId(),
       title: this.getTitle(),
       userName: this.getUserName(),
       content: this.getContent(),
-      photoUrl: this.getPhoto(),
+      photo: this.getPhoto(),
       upVotes: this.getUpvotes(),
       reactions: this.getReactions(),
       comments: this.getComments(),

@@ -1,5 +1,6 @@
 import { Router } from 'itty-router';
 import Posts from './classes/Posts';
+import requestPostId from './types/requestPostId';
 import ValidationError from './classes/ValidationError';
 import validateJson from './components/validateJson';
 import validateParametersCheckMissing from './components/validateParametersCheckMissing';
@@ -11,6 +12,7 @@ declare const POSTS: KVNamespace;
 // Create a new router
 const router = Router();
 
+//get all posts
 router.get('/posts', async () => {
   const listOfKeys = await POSTS.list();
   const listOfPosts = [];
@@ -20,22 +22,8 @@ router.get('/posts', async () => {
   return new Response('[' + listOfPosts.toString() + ']');
 });
 
-router.get('/posts/:postId', async ({ params }) => {
-  if (!params || !params.postId) {
-    return new Response('No postId specified in request params', { status: 400 });
-  } else {
-    if (!uuidValidateV1(params.postId)) {
-      return new Response('Invalid postId', { status: 400 });
-    }
-  }
-  const post = await POSTS.get(params.postId);
-  if (!post) {
-    return new Response('No post found under that id', { status: 404 });
-  }
-  return new Response(post);
-});
-
-router.post('/posts', async (request: Request) => {
+//create posts
+router.post('/posts', async (request) => {
   try {
     const requestJson = await validateJson(request);
     if (!requestJson.photo) {
@@ -56,6 +44,54 @@ router.post('/posts', async (request: Request) => {
     );
     POSTS.put(newPost.getPostId(), newPost.toString());
     return new Response('Sucessfully created new post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//verify postId middleware
+router.all('/posts/:postId', (request: requestPostId) => {
+  if (!uuidValidateV1(request.params.postId)) {
+    return new Response('Invalid postId', { status: 400 });
+  }
+});
+
+//get post by postId
+router.get('/posts/:postId', async (request: requestPostId) => {
+  const post = await POSTS.get(request.params.postId);
+  if (!post) {
+    return new Response('No post found under that id', { status: 404 });
+  }
+  return new Response(post);
+});
+
+//upvote post
+router.post('/posts/:postId/upvote', async (request: requestPostId) => {
+  try {
+    const requestJson = await validateJson(request);
+    if (!requestJson.userName) {
+      return new Response('Please include a userName as a parameter', { status: 404 });
+    }
+    const storedPost = await POSTS.get(request.params.postId);
+    if (!storedPost) {
+      return new Response('No post found under that id', { status: 404 });
+    }
+    const parsedPost = JSON.parse(storedPost);
+    const post = new Posts(
+      parsedPost.title,
+      parsedPost.userName,
+      parsedPost.content,
+      parsedPost.photo,
+      parsedPost.upVotes,
+      parsedPost.reactions,
+      parsedPost.comments,
+      request.params.postId,
+    );
+
+    await post.addUpvote(requestJson.userName);
+    return new Response('Sucessfully upvoted post!');
   } catch (error) {
     if (error instanceof ValidationError) {
       return new Response(error.message, { status: error.code });
