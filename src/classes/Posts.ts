@@ -13,28 +13,34 @@ interface commentsTypes {
   commentId: string;
   content: string;
   userName: string;
+  userBackgroundColor: string;
   upVotes: string[];
   reactions: reactionsTypes[];
+  createdAt: string;
 }
 
 export default class Posts {
   private postId!: string;
   private title: string;
   private userName: string;
+  private userBackgroundColor: string;
   private content: string;
   private photo: string;
   private upVotes: string[] = [];
   private reactions = [] as reactionsTypes[];
   private comments = [] as commentsTypes[];
+  private createdAt: string;
 
   constructor(
     title: string,
     userName: string,
+    userBackgroundColor: string,
     content: string,
     photo: string,
     upVotes: string[],
     reactions: reactionsTypes[],
     comments: commentsTypes[],
+    createdAt: string,
     postId?: string,
   ) {
     if (postId !== undefined && uuidValidateV1(postId)) {
@@ -44,11 +50,13 @@ export default class Posts {
     }
     this.title = title;
     this.userName = userName;
+    this.userBackgroundColor = userBackgroundColor;
     this.content = content;
     this.photo = photo;
     this.upVotes = upVotes;
     this.reactions = reactions;
     this.comments = comments;
+    this.createdAt = createdAt;
   }
 
   //getters
@@ -60,6 +68,9 @@ export default class Posts {
   }
   public getUserName(): string {
     return this.userName;
+  }
+  public getUserBackgroundColor(): string {
+    return this.userBackgroundColor;
   }
   public getContent(): string {
     return this.content;
@@ -75,6 +86,9 @@ export default class Posts {
   }
   public getComments(): commentsTypes[] {
     return this.comments;
+  }
+  public getCreatedAt(): string {
+    return this.createdAt;
   }
   //setters
   public setTitle(title: string): void {
@@ -150,9 +164,11 @@ export default class Posts {
     newComments.push({
       commentId: uuidv1(),
       userName: userName,
+      userBackgroundColor: this.getUserBackgroundColor(),
       content: content,
       upVotes: [],
       reactions: [],
+      createdAt: Date.now().toString(),
     });
     this.comments = newComments;
     POSTS.put(this.getPostId(), this.toString());
@@ -267,11 +283,13 @@ export default class Posts {
       postId: this.getPostId(),
       title: this.getTitle(),
       userName: this.getUserName(),
+      userBackgroundColor: this.getUserBackgroundColor(),
       content: this.getContent(),
       photo: this.getPhoto(),
       upVotes: this.getUpvotes(),
       reactions: this.getReactions(),
       comments: this.getComments(),
+      createdAt: this.getCreatedAt(),
     });
   }
 }

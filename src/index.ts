@@ -24,39 +24,6 @@ router.get('/posts', async () => {
   return new Response('[' + listOfPosts.toString() + ']');
 });
 
-//create posts
-router.post('/posts', async (request) => {
-  try {
-    const requestJson = await validateJson(request);
-
-    if (!requestJson.photo) {
-      requestJson.photo = '';
-    } else {
-      verifyPhotoUpload(requestJson.photo);
-    }
-
-    const validParams = ['title', 'userName', 'content', 'photo'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
-    const newPost = new Posts(
-      requestJson.title,
-      requestJson.userName,
-      requestJson.content,
-      requestJson.photo,
-      [],
-      [],
-      [],
-    );
-
-    POSTS.put(newPost.getPostId(), newPost.toString());
-    return new Response('Sucessfully created new post!');
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
-    }
-  }
-});
-
 //verify postId middleware
 router.all('/posts/:postId', (request: requestPostId) => {
   if (!uuidValidateV1(request.params.postId)) {
@@ -71,6 +38,58 @@ router.get('/posts/:postId', async (request: requestPostId) => {
     return new Response('No post found under that id', { status: 404 });
   }
   return new Response(post);
+});
+
+//verify userName //@TODO: JWT AUTH HERE
+// router.all('*', async (request) => {
+//   if (!request.params.userName) {
+//     return new Response('Missing the userName parameter!');
+//   }
+// });
+
+//create posts
+router.post('/posts', async (request) => {
+  try {
+    const requestJson = await validateJson(request);
+
+    if (!requestJson.photo) {
+      requestJson.photo = '';
+    } else {
+      verifyPhotoUpload(requestJson.photo);
+    }
+
+    const validParams = ['title', 'userName', 'userBackgroundColor', 'content', 'photo'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const newPost = new Posts(
+      requestJson.title,
+      requestJson.userName,
+      requestJson.userBackgroundColor,
+      requestJson.content,
+      requestJson.photo,
+      [],
+      [],
+      [],
+      Date.now().toString(),
+    );
+
+    POSTS.put(newPost.getPostId(), newPost.toString());
+    return new Response('Sucessfully created new post!');
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return new Response(error.message, { status: error.code });
+    }
+  }
+});
+
+//delete post by postId
+router.delete('/posts/:postId', async (request: requestPostId) => {
+  const post = await POSTS.get(request.params.postId);
+  if (!post) {
+    return new Response('No post found under that id', { status: 404 });
+  }
+  await POSTS.delete(request.params.postId);
+  return new Response('Sucessfully deleted post!');
 });
 
 //upvote post
@@ -90,11 +109,13 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -124,11 +145,13 @@ router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -161,11 +184,13 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -195,11 +220,13 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -229,11 +256,13 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -270,11 +299,13 @@ router.delete('/posts/:postId/comments/:commentId', async (request: requestComme
     const post = new Posts(
       parsedPost.title,
       parsedPost.userName,
+      parsedPost.userBackgroundColor,
       parsedPost.content,
       parsedPost.photo,
       parsedPost.upVotes,
       parsedPost.reactions,
       parsedPost.comments,
+      parsedPost.createdAt,
       request.params.postId,
     );
 
@@ -306,11 +337,13 @@ router.post(
       const post = new Posts(
         parsedPost.title,
         parsedPost.userName,
+        parsedPost.userBackgroundColor,
         parsedPost.content,
         parsedPost.photo,
         parsedPost.upVotes,
         parsedPost.reactions,
         parsedPost.comments,
+        parsedPost.createdAt,
         request.params.postId,
       );
 
@@ -343,11 +376,13 @@ router.delete(
       const post = new Posts(
         parsedPost.title,
         parsedPost.userName,
+        parsedPost.userBackgroundColor,
         parsedPost.content,
         parsedPost.photo,
         parsedPost.upVotes,
         parsedPost.reactions,
         parsedPost.comments,
+        parsedPost.createdAt,
         request.params.postId,
       );
 
@@ -383,11 +418,13 @@ router.post(
       const post = new Posts(
         parsedPost.title,
         parsedPost.userName,
+        parsedPost.userBackgroundColor,
         parsedPost.content,
         parsedPost.photo,
         parsedPost.upVotes,
         parsedPost.reactions,
         parsedPost.comments,
+        parsedPost.createdAt,
         request.params.postId,
       );
 
@@ -424,11 +461,13 @@ router.delete(
       const post = new Posts(
         parsedPost.title,
         parsedPost.userName,
+        parsedPost.userBackgroundColor,
         parsedPost.content,
         parsedPost.photo,
         parsedPost.upVotes,
         parsedPost.reactions,
         parsedPost.comments,
+        parsedPost.createdAt,
         request.params.postId,
       );
 
