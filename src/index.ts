@@ -18,6 +18,14 @@ declare const USERS: KVNamespace;
 // Create a new router
 const router = Router();
 
+//cors headers
+function cors(response: Response) {
+  response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Methods', 'POST, GET, DELETE');
+  response.headers.set('Access-Control-Max-Age', '86400');
+  return response;
+}
+
 //get all posts
 router.get('/posts', async () => {
   const listOfKeys = await POSTS.list();
@@ -25,7 +33,7 @@ router.get('/posts', async () => {
   for (const key of listOfKeys.keys) {
     listOfPosts.push(await POSTS.get(key.name));
   }
-  return new Response('[' + listOfPosts.toString() + ']');
+  return cors(new Response('[' + listOfPosts.toString() + ']'));
 });
 
 //register user
@@ -35,7 +43,7 @@ router.get('/users/:userName', async (request) => {
     if (storedUser) {
       const parsedUser = JSON.parse(storedUser);
       const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
-      return new Response(user.toString());
+      return cors(new Response(user.toString()));
     } else {
       const authResponse: any = await authJwt(request.params.userName);
       const cookie = authResponse.headers.get('set-cookie');
@@ -47,17 +55,17 @@ router.get('/users/:userName', async (request) => {
         JSON.stringify({ success: 'User has been registered!' }),
       );
       response.headers.set('set-cookie', cookie);
-      return response;
+      return cors(response);
     }
   } else {
-    return new Response('Please include a userName in parameters', { status: 400 });
+    return cors(new Response('Please include a userName in parameters', { status: 400 }));
   }
 });
 
 //verify postId middleware
 router.all('/posts/:postId', (request: requestPostId) => {
   if (!uuidValidateV1(request.params.postId)) {
-    return new Response('Invalid postId', { status: 400 });
+    return cors(new Response('Invalid postId', { status: 400 }));
   }
 });
 
@@ -65,9 +73,9 @@ router.all('/posts/:postId', (request: requestPostId) => {
 router.get('/posts/:postId', async (request: requestPostId) => {
   const post = await POSTS.get(request.params.postId);
   if (!post) {
-    return new Response('No post found under that id', { status: 404 });
+    return cors(new Response('No post found under that id', { status: 404 }));
   }
-  return new Response(post);
+  return cors(new Response(post));
 });
 
 //verify jwt token
@@ -79,10 +87,10 @@ router.all('*', async (request: any) => {
       const verificationResponse: any = await verifyJwt(jwtToken);
       request.locals = verificationResponse;
     } else {
-      return new Response('Missing authentication header!');
+      return cors(new Response('Missing authentication header!'));
     }
   } catch (error) {
-    return new Response('Invalid Token!');
+    return cors(new Response('Invalid Token!'));
   }
 });
 
@@ -113,10 +121,10 @@ router.post('/posts', async (request: any) => {
     );
 
     POSTS.put(newPost.getPostId(), newPost.toString());
-    return new Response('Sucessfully created new post!');
+    return cors(new Response('Sucessfully created new post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -125,7 +133,7 @@ router.post('/posts', async (request: any) => {
 router.delete('/posts/:postId', async (request: requestPostId) => {
   const storedPost = await POSTS.get(request.params.postId);
   if (!storedPost) {
-    return new Response('No post found under that id', { status: 404 });
+    return cors(new Response('No post found under that id', { status: 404 }));
   }
 
   const parsedPost = JSON.parse(storedPost);
@@ -144,9 +152,9 @@ router.delete('/posts/:postId', async (request: requestPostId) => {
 
   if (request.locals.userName === post.getUserName()) {
     await POSTS.delete(request.params.postId);
-    return new Response('Sucessfully deleted post!');
+    return cors(new Response('Sucessfully deleted post!'));
   } else {
-    return new Response("You can't delete posts you don't own!");
+    return cors(new Response("You can't delete posts you don't own!"));
   }
 });
 
@@ -155,7 +163,7 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -173,10 +181,10 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
     );
 
     await post.addUpvote(request.locals.userName);
-    return new Response('Sucessfully upvoted post!');
+    return cors(new Response('Sucessfully upvoted post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -186,7 +194,7 @@ router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -204,10 +212,10 @@ router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
     );
 
     await post.removeUpvote(request.locals.userName);
-    return new Response('Sucessfully removed upvote on post!');
+    return cors(new Response('Sucessfully removed upvote on post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -225,7 +233,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
 
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -243,10 +251,10 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
     );
 
     await post.addReaction(request.locals.userName, reactionType);
-    return new Response('Sucessfully upvoted post!');
+    return cors(new Response('Sucessfully upvoted post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -256,7 +264,7 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -274,10 +282,10 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
     );
 
     await post.removeReaction(request.locals.userName);
-    return new Response('Sucessfully removed reaction from post!');
+    return cors(new Response('Sucessfully removed reaction from post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -292,7 +300,7 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
 
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -310,10 +318,10 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
     );
 
     await post.addComment(request.locals.userName, requestJson.content);
-    return new Response('Sucessfully commented on post!');
+    return cors(new Response('Sucessfully commented on post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -321,7 +329,7 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
 //verify postId middleware
 router.all('/posts/:postId/comments/:commentId', (request: requestCommentId) => {
   if (!uuidValidateV1(request.params.commentId)) {
-    return new Response('Invalid commentId', { status: 400 });
+    return cors(new Response('Invalid commentId', { status: 400 }));
   }
 });
 
@@ -330,7 +338,7 @@ router.delete('/posts/:postId/comments/:commentId', async (request: requestComme
   try {
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
-      return new Response('No post found under that id', { status: 404 });
+      return cors(new Response('No post found under that id', { status: 404 }));
     }
 
     const parsedPost = JSON.parse(storedPost);
@@ -348,10 +356,10 @@ router.delete('/posts/:postId/comments/:commentId', async (request: requestComme
     );
 
     await post.removeComment(request.locals.userName, request.params.commentId);
-    return new Response('Sucessfully deleted comment on post!');
+    return cors(new Response('Sucessfully deleted comment on post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
-      return new Response(error.message, { status: error.code });
+      return cors(new Response(error.message, { status: error.code }));
     }
   }
 });
@@ -363,7 +371,7 @@ router.post(
     try {
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
-        return new Response('No post found under that id', { status: 404 });
+        return cors(new Response('No post found under that id', { status: 404 }));
       }
 
       const parsedPost = JSON.parse(storedPost);
@@ -381,10 +389,10 @@ router.post(
       );
 
       await post.addCommentUpVote(request.locals.userName, request.params.commentId);
-      return new Response('Sucessfully upvoted commented!');
+      return cors(new Response('Sucessfully upvoted commented!'));
     } catch (error) {
       if (error instanceof ValidationError) {
-        return new Response(error.message, { status: error.code });
+        return cors(new Response(error.message, { status: error.code }));
       }
     }
   },
@@ -397,7 +405,7 @@ router.delete(
     try {
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
-        return new Response('No post found under that id', { status: 404 });
+        return cors(new Response('No post found under that id', { status: 404 }));
       }
 
       const parsedPost = JSON.parse(storedPost);
@@ -415,10 +423,10 @@ router.delete(
       );
 
       await post.removeCommentUpVote(request.locals.userName, request.params.commentId);
-      return new Response('Sucessfully removed upvote on comment!');
+      return cors(new Response('Sucessfully removed upvote on comment!'));
     } catch (error) {
       if (error instanceof ValidationError) {
-        return new Response(error.message, { status: error.code });
+        return cors(new Response(error.message, { status: error.code }));
       }
     }
   },
@@ -439,7 +447,7 @@ router.post(
 
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
-        return new Response('No post found under that id', { status: 404 });
+        return cors(new Response('No post found under that id', { status: 404 }));
       }
 
       const parsedPost = JSON.parse(storedPost);
@@ -461,10 +469,10 @@ router.post(
         request.params.commentId,
         reactionType,
       );
-      return new Response('Sucessfully reacted to comment!');
+      return cors(new Response('Sucessfully reacted to comment!'));
     } catch (error) {
       if (error instanceof ValidationError) {
-        return new Response(error.message, { status: error.code });
+        return cors(new Response(error.message, { status: error.code }));
       }
     }
   },
@@ -477,7 +485,7 @@ router.delete(
     try {
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
-        return new Response('No post found under that id', { status: 404 });
+        return cors(new Response('No post found under that id', { status: 404 }));
       }
 
       const parsedPost = JSON.parse(storedPost);
@@ -495,10 +503,10 @@ router.delete(
       );
 
       await post.removeCommentReaction(request.locals.userName, request.params.commentId);
-      return new Response('Sucessfully removed reaction from comment!');
+      return cors(new Response('Sucessfully removed reaction from comment!'));
     } catch (error) {
       if (error instanceof ValidationError) {
-        return new Response(error.message, { status: error.code });
+        return cors(new Response(error.message, { status: error.code }));
       }
     }
   },
@@ -509,7 +517,7 @@ This is the last route we define, it will match anything that hasn't hit a route
 above, therefore it's useful as a 404 (and avoids us hitting worker exceptions, so make sure to include it!).
 Visit any page that doesn't exist (e.g. /foobar) to see it in action.
 */
-router.all('*', () => new Response('404, not found!', { status: 404 }));
+router.all('*', () => cors(new Response('404, not found!', { status: 404 })));
 
 /*
 This snippet ties our worker to the router we defined above, all incoming requests
