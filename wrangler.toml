@@ -7,6 +7,7 @@ compatibility_date = "2021-10-21"
 
 kv_namespaces = [ 
     { binding = "POSTS", preview_id = "1052170edfe248a495459e17fa1987bc", id = "f910844407a84f0d93021bc49f115a02" },
+    { binding = "USERS", preview_id = "61ae47b10972492ab7c21d88e4e657db", id = "e646e0c9897043dfa61d0fa3111e5b2c" },
 ]
 
 [build]

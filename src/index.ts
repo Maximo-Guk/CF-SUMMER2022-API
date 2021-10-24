@@ -1,4 +1,5 @@
 import { Router } from 'itty-router';
+import Users from './classes/Users';
 import Posts from './classes/Posts';
 import requestPostId from './types/requestPostId';
 import requestCommentId from './types/requestCommentId';
@@ -10,6 +11,7 @@ import validateReactionType from './components/validateReactionType';
 import uuidValidateV1 from './components/uuidValidateV1';
 
 declare const POSTS: KVNamespace;
+declare const USERS: KVNamespace;
 
 // Create a new router
 const router = Router();
@@ -22,6 +24,24 @@ router.get('/posts', async () => {
     listOfPosts.push(await POSTS.get(key.name));
   }
   return new Response('[' + listOfPosts.toString() + ']');
+});
+
+//register user
+router.post('/users/:userName', async (request) => {
+  if (request.params && request.params.userName) {
+    const storedUser = await USERS.get(request.params.userName);
+    if (storedUser) {
+      const parsedUser = JSON.parse(storedUser);
+      const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
+      return new Response(user.toString());
+    } else {
+      const user = new Users(request.params.userName);
+      USERS.put(request.params.userName, user.toString());
+      return new Response('User has been registered!');
+    }
+  } else {
+    return new Response('Please include a userName in parameters', { status: 400 });
+  }
 });
 
 //verify postId middleware
