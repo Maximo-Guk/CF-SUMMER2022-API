@@ -2,8 +2,7 @@ name = "ga-api"
 type = "javascript"
 zone_id = "f1974a146d724072fffc180fa3c097a1"
 account_id = "9d5a66033268ccdf77b19d50cc3d4e5d"
-route = "api.maximoguk.com/*"
-workers_dev = false
+workers_dev = true
 compatibility_date = "2021-10-21"
 
 kv_namespaces = [ 
