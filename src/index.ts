@@ -27,7 +27,7 @@ router.get('/posts', async () => {
 });
 
 //register user
-router.post('/users/:userName', async (request) => {
+router.get('/users/:userName', async (request) => {
   if (request.params && request.params.userName) {
     const storedUser = await USERS.get(request.params.userName);
     if (storedUser) {
@@ -37,7 +37,7 @@ router.post('/users/:userName', async (request) => {
     } else {
       const user = new Users(request.params.userName);
       USERS.put(request.params.userName, user.toString());
-      return new Response('User has been registered!');
+      return new Response(JSON.stringify({ success: 'User has been registered!' }));
     }
   } else {
     return new Response('Please include a userName in parameters', { status: 400 });
