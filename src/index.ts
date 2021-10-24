@@ -9,6 +9,8 @@ import validateParametersCheckMissing from './components/validateParametersCheck
 import verifyPhotoUpload from './components/verifyPhotoUpload';
 import validateReactionType from './components/validateReactionType';
 import uuidValidateV1 from './components/uuidValidateV1';
+import authJwt from './components/authJwt';
+import verifyJwt from './components/verifyJwt';
 
 declare const POSTS: KVNamespace;
 declare const USERS: KVNamespace;
@@ -35,9 +37,17 @@ router.get('/users/:userName', async (request) => {
       const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
       return new Response(user.toString());
     } else {
+      const authResponse: any = await authJwt(request.params.userName);
+      const cookie = authResponse.headers.get('set-cookie');
+
       const user = new Users(request.params.userName);
       USERS.put(request.params.userName, user.toString());
-      return new Response(JSON.stringify({ success: 'User has been registered!' }));
+
+      const response = new Response(
+        JSON.stringify({ success: 'User has been registered!' }),
+      );
+      response.headers.set('set-cookie', cookie);
+      return response;
     }
   } else {
     return new Response('Please include a userName in parameters', { status: 400 });
@@ -60,15 +70,24 @@ router.get('/posts/:postId', async (request: requestPostId) => {
   return new Response(post);
 });
 
-//verify userName //@TODO: JWT AUTH HERE
-// router.all('*', async (request) => {
-//   if (!request.params.userName) {
-//     return new Response('Missing the userName parameter!');
-//   }
-// });
+//verify jwt token
+router.all('*', async (request: any) => {
+  try {
+    if (request.headers.get('Cookie')) {
+      const cookie = request.headers.get('Cookie');
+      const jwtToken = cookie.split('token=')[1];
+      const verificationResponse: any = await verifyJwt(jwtToken);
+      request.locals = verificationResponse;
+    } else {
+      return new Response('Missing authentication header!');
+    }
+  } catch (error) {
+    return new Response('Invalid Token!');
+  }
+});
 
 //create posts
-router.post('/posts', async (request) => {
+router.post('/posts', async (request: any) => {
   try {
     const requestJson = await validateJson(request);
 
@@ -78,12 +97,12 @@ router.post('/posts', async (request) => {
       verifyPhotoUpload(requestJson.photo);
     }
 
-    const validParams = ['title', 'userName', 'userBackgroundColor', 'content', 'photo'];
+    const validParams = ['title', 'userBackgroundColor', 'content', 'photo'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
     const newPost = new Posts(
       requestJson.title,
-      requestJson.userName,
+      request.locals.userName,
       requestJson.userBackgroundColor,
       requestJson.content,
       requestJson.photo,
@@ -104,22 +123,36 @@ router.post('/posts', async (request) => {
 
 //delete post by postId
 router.delete('/posts/:postId', async (request: requestPostId) => {
-  const post = await POSTS.get(request.params.postId);
-  if (!post) {
+  const storedPost = await POSTS.get(request.params.postId);
+  if (!storedPost) {
     return new Response('No post found under that id', { status: 404 });
   }
-  await POSTS.delete(request.params.postId);
-  return new Response('Sucessfully deleted post!');
+
+  const parsedPost = JSON.parse(storedPost);
+  const post = new Posts(
+    parsedPost.title,
+    parsedPost.userName,
+    parsedPost.userBackgroundColor,
+    parsedPost.content,
+    parsedPost.photo,
+    parsedPost.upVotes,
+    parsedPost.reactions,
+    parsedPost.comments,
+    parsedPost.createdAt,
+    request.params.postId,
+  );
+
+  if (request.locals.userName === post.getUserName()) {
+    await POSTS.delete(request.params.postId);
+    return new Response('Sucessfully deleted post!');
+  } else {
+    return new Response("You can't delete posts you don't own!");
+  }
 });
 
 //upvote post
 router.post('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
-    const requestJson = await validateJson(request);
-
-    const validParams = ['userName'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return new Response('No post found under that id', { status: 404 });
@@ -139,7 +172,7 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.addUpvote(requestJson.userName);
+    await post.addUpvote(request.locals.userName);
     return new Response('Sucessfully upvoted post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -151,11 +184,6 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
 //remove upvote post
 router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
-    const requestJson = await validateJson(request);
-
-    const validParams = ['userName'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return new Response('No post found under that id', { status: 404 });
@@ -175,7 +203,7 @@ router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.removeUpvote(requestJson.userName);
+    await post.removeUpvote(request.locals.userName);
     return new Response('Sucessfully removed upvote on post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -189,7 +217,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
 
-    const validParams = ['userName', 'type'];
+    const validParams = ['type'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
     const reactionType = requestJson.type.split(/(?!$)/u)[0];
@@ -214,7 +242,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.addReaction(requestJson.userName, reactionType);
+    await post.addReaction(request.locals.userName, reactionType);
     return new Response('Sucessfully upvoted post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -226,11 +254,6 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
 //remove reaction to post
 router.delete('/posts/:postId/react', async (request: requestPostId) => {
   try {
-    const requestJson = await validateJson(request);
-
-    const validParams = ['userName'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return new Response('No post found under that id', { status: 404 });
@@ -250,7 +273,7 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.removeReaction(requestJson.userName);
+    await post.removeReaction(request.locals.userName);
     return new Response('Sucessfully removed reaction from post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -264,7 +287,7 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
 
-    const validParams = ['userName', 'content'];
+    const validParams = ['content'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
     const storedPost = await POSTS.get(request.params.postId);
@@ -286,7 +309,7 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.addComment(requestJson.userName, requestJson.content);
+    await post.addComment(request.locals.userName, requestJson.content);
     return new Response('Sucessfully commented on post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -305,11 +328,6 @@ router.all('/posts/:postId/comments/:commentId', (request: requestCommentId) => 
 //delete post comment by commentId
 router.delete('/posts/:postId/comments/:commentId', async (request: requestCommentId) => {
   try {
-    const requestJson = await validateJson(request);
-
-    const validParams = ['userName'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return new Response('No post found under that id', { status: 404 });
@@ -329,7 +347,7 @@ router.delete('/posts/:postId/comments/:commentId', async (request: requestComme
       request.params.postId,
     );
 
-    await post.removeComment(requestJson.userName, request.params.commentId);
+    await post.removeComment(request.locals.userName, request.params.commentId);
     return new Response('Sucessfully deleted comment on post!');
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -343,11 +361,6 @@ router.post(
   '/posts/:postId/comments/:commentId/upvote',
   async (request: requestCommentId) => {
     try {
-      const requestJson = await validateJson(request);
-
-      const validParams = ['userName'];
-      validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
         return new Response('No post found under that id', { status: 404 });
@@ -367,7 +380,7 @@ router.post(
         request.params.postId,
       );
 
-      await post.addCommentUpVote(requestJson.userName, request.params.commentId);
+      await post.addCommentUpVote(request.locals.userName, request.params.commentId);
       return new Response('Sucessfully upvoted commented!');
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -382,11 +395,6 @@ router.delete(
   '/posts/:postId/comments/:commentId/upvote',
   async (request: requestCommentId) => {
     try {
-      const requestJson = await validateJson(request);
-
-      const validParams = ['userName'];
-      validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
         return new Response('No post found under that id', { status: 404 });
@@ -406,7 +414,7 @@ router.delete(
         request.params.postId,
       );
 
-      await post.removeCommentUpVote(requestJson.userName, request.params.commentId);
+      await post.removeCommentUpVote(request.locals.userName, request.params.commentId);
       return new Response('Sucessfully removed upvote on comment!');
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -423,7 +431,7 @@ router.post(
     try {
       const requestJson = await validateJson(request);
 
-      const validParams = ['userName', 'type'];
+      const validParams = ['type'];
       validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
       const reactionType = requestJson.type.split(/(?!$)/u)[0];
@@ -449,7 +457,7 @@ router.post(
       );
 
       await post.addCommentReaction(
-        requestJson.userName,
+        request.locals.userName,
         request.params.commentId,
         reactionType,
       );
@@ -467,11 +475,6 @@ router.delete(
   '/posts/:postId/comments/:commentId/react',
   async (request: requestCommentId) => {
     try {
-      const requestJson = await validateJson(request);
-
-      const validParams = ['userName'];
-      validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
         return new Response('No post found under that id', { status: 404 });
@@ -491,7 +494,7 @@ router.delete(
         request.params.postId,
       );
 
-      await post.removeCommentReaction(requestJson.userName, request.params.commentId);
+      await post.removeCommentReaction(request.locals.userName, request.params.commentId);
       return new Response('Sucessfully removed reaction from comment!');
     } catch (error) {
       if (error instanceof ValidationError) {
