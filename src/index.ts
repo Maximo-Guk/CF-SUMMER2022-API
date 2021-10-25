@@ -102,7 +102,6 @@ router.get('/verify', async (request: requestLocals) => {
 //logout user
 router.get('/users/:userName/logout', async (request: any) => {
   const cookie = request.headers.get('Cookie');
-  console.log(cookie);
   const response = new Response('Sucessfully logged out!');
   response.headers.set('set-cookie', `${cookie}; max-age=0; Path=/;`);
   return cors(response);
