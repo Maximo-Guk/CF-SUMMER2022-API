@@ -52,9 +52,7 @@ router.get('/users/:userName', async (request) => {
       const user = new Users(request.params.userName);
       USERS.put(request.params.userName, user.toString());
 
-      const response = new Response(
-        JSON.stringify({ success: 'User has been registered!' }),
-      );
+      const response = new Response('User has been registered!');
       response.headers.set('set-cookie', cookie);
       return cors(response);
     }
@@ -93,6 +91,15 @@ router.all('*', async (request: any) => {
   } catch (error) {
     return cors(new Response('Invalid Token!'));
   }
+});
+
+//logout user
+router.get('/users/:userName/logout', async (request: any) => {
+  const cookie = request.headers.get('Cookie');
+  console.log(cookie);
+  const response = new Response('Sucessfully logged out!');
+  response.headers.set('set-cookie', `${cookie}; max-age=0; Path=/;`);
+  return cors(response);
 });
 
 //create posts
