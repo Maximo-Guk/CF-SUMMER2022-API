@@ -57,12 +57,16 @@ router.get('/users/:userName', async (request) => {
     } else {
       const authResponse: any = await authJwt(request.params.userName);
       const cookie = authResponse.headers.get('set-cookie');
+      const jwtToken = cookie.split('token=')[1].split(';')[0];
 
       const user = new Users(request.params.userName);
       USERS.put(request.params.userName, user.toString());
 
       const response = new Response('User has been registered!');
-      response.headers.set('set-cookie', cookie);
+      response.headers.set(
+        'set-cookie',
+        `token=${jwtToken}; path=/; SameSite=None; secure;`,
+      );
       return cors(response);
     }
   } else {
