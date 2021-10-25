@@ -130,7 +130,14 @@ router.post('/posts', async (request: any) => {
       requestJson.content,
       requestJson.photo,
       [],
-      [],
+      {
+        '😀': [],
+        '😂': [],
+        '😭': [],
+        '🥰': [],
+        '😍': [],
+        '🤢': [],
+      },
       [],
       Date.now().toString(),
     );
@@ -277,6 +284,14 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
 //remove reaction to post
 router.delete('/posts/:postId/react', async (request: requestPostId) => {
   try {
+    const requestJson = await validateJson(request);
+
+    const validParams = ['type'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    const reactionType = requestJson.type.split(/(?!$)/u)[0];
+    validateReactionType(reactionType);
+
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return cors(new Response('No post found under that id', { status: 404 }));
@@ -296,7 +311,7 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.removeReaction(request.locals.userName);
+    await post.removeReaction(request.locals.userName, reactionType);
     return cors(new Response('Sucessfully removed reaction from post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
@@ -498,6 +513,14 @@ router.delete(
   '/posts/:postId/comments/:commentId/react',
   async (request: requestCommentId) => {
     try {
+      const requestJson = await validateJson(request);
+
+      const validParams = ['type'];
+      validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+      const reactionType = requestJson.type.split(/(?!$)/u)[0];
+      validateReactionType(reactionType);
+
       const storedPost = await POSTS.get(request.params.postId);
       if (!storedPost) {
         return cors(new Response('No post found under that id', { status: 404 }));
@@ -517,7 +540,11 @@ router.delete(
         request.params.postId,
       );
 
-      await post.removeCommentReaction(request.locals.userName, request.params.commentId);
+      await post.removeCommentReaction(
+        request.locals.userName,
+        request.params.commentId,
+        reactionType,
+      );
       return cors(new Response('Sucessfully removed reaction from comment!'));
     } catch (error) {
       if (error instanceof ValidationError) {

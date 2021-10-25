@@ -5,8 +5,12 @@ import ValidationError from './ValidationError';
 declare const POSTS: KVNamespace;
 
 interface reactionsTypes {
-  type: string;
-  userName: string;
+  '😀': string[];
+  '😂': string[];
+  '😭': string[];
+  '🥰': string[];
+  '😍': string[];
+  '🤢': string[];
 }
 
 interface commentsTypes {
@@ -15,7 +19,7 @@ interface commentsTypes {
   userName: string;
   userBackgroundColor: string;
   upVotes: string[];
-  reactions: reactionsTypes[];
+  reactions: reactionsTypes;
   createdAt: string;
 }
 
@@ -27,7 +31,14 @@ export default class Posts {
   private content: string;
   private photo: string;
   private upVotes: string[] = [];
-  private reactions = [] as reactionsTypes[];
+  private reactions = {
+    '😀': [],
+    '😂': [],
+    '😭': [],
+    '🥰': [],
+    '😍': [],
+    '🤢': [],
+  } as reactionsTypes;
   private comments = [] as commentsTypes[];
   private createdAt: string;
 
@@ -38,7 +49,7 @@ export default class Posts {
     content: string,
     photo: string,
     upVotes: string[],
-    reactions: reactionsTypes[],
+    reactions: reactionsTypes,
     comments: commentsTypes[],
     createdAt: string,
     postId?: string,
@@ -81,7 +92,7 @@ export default class Posts {
   public getUpvotes(): string[] {
     return this.upVotes;
   }
-  public getReactions(): reactionsTypes[] {
+  public getReactions(): reactionsTypes {
     return this.reactions;
   }
   public getComments(): commentsTypes[] {
@@ -132,27 +143,22 @@ export default class Posts {
 
   public async addReaction(userName: string, type: string): Promise<void> {
     const newReactions = this.getReactions();
-    newReactions.forEach((reaction) => {
-      if (reaction.userName === userName) {
-        throw new ValidationError('User has already reacted', 400);
-      }
-    });
-    newReactions.push({ userName: userName, type: type });
+    if (newReactions[type as '😀'].includes(userName)) {
+      throw new ValidationError('User has already reacted', 400);
+    }
+    newReactions[type as '😀'].push(userName);
     this.reactions = newReactions;
     POSTS.put(this.getPostId(), this.toString());
   }
 
-  public async removeReaction(userName: string): Promise<void> {
+  public async removeReaction(userName: string, type: string): Promise<void> {
     const newReactions = this.getReactions();
-    for (const [index, reaction] of newReactions.entries()) {
-      if (reaction.userName === userName) {
-        newReactions.splice(index, 1);
-        this.reactions = newReactions;
-        POSTS.put(this.getPostId(), this.toString());
-        return;
-      }
+    if (!newReactions[type as '😀'].includes(userName)) {
+      throw new ValidationError('User has not reacted', 400);
     }
-    throw new ValidationError('User has not reacted', 400);
+    newReactions[type as '😀'].splice(newReactions[type as '😀'].indexOf(userName, 1));
+    this.reactions = newReactions;
+    POSTS.put(this.getPostId(), this.toString());
   }
 
   //end of post reactions
@@ -167,7 +173,14 @@ export default class Posts {
       userBackgroundColor: this.getUserBackgroundColor(),
       content: content,
       upVotes: [],
-      reactions: [],
+      reactions: {
+        '😀': [],
+        '😂': [],
+        '😭': [],
+        '🥰': [],
+        '😍': [],
+        '🤢': [],
+      } as reactionsTypes,
       createdAt: Date.now().toString(),
     });
     this.comments = newComments;
@@ -234,19 +247,13 @@ export default class Posts {
   ): Promise<void> {
     const newCommentReaction = this.getComments();
     for (const [index, comment] of newCommentReaction.entries()) {
-      if (comment.commentId === commentId && comment.reactions.length !== 0) {
-        for (const reaction of comment.reactions) {
-          if (reaction.userName === userName) {
-            throw new ValidationError('User has already reacted to this comment', 400);
-          } else if (comment.commentId) {
-            newCommentReaction[index].reactions.push({ userName: userName, type: type });
-            this.comments = newCommentReaction;
-            POSTS.put(this.getPostId(), this.toString());
-            return;
-          }
-        }
+      if (
+        comment.commentId === commentId &&
+        comment.reactions[type as '😀'].includes(userName)
+      ) {
+        throw new ValidationError('User has already reacted to this comment', 400);
       } else if (comment.commentId === commentId) {
-        newCommentReaction[index].reactions.push({ userName: userName, type: type });
+        newCommentReaction[index].reactions[type as '😀'].push(userName);
         this.comments = newCommentReaction;
         POSTS.put(this.getPostId(), this.toString());
         return;
@@ -255,20 +262,25 @@ export default class Posts {
     throw new ValidationError('Comment not found', 404);
   }
 
-  public async removeCommentReaction(userName: string, commentId: string): Promise<void> {
+  public async removeCommentReaction(
+    userName: string,
+    commentId: string,
+    type: string,
+  ): Promise<void> {
     const newCommentReaction = this.getComments();
     for (const [index, comment] of newCommentReaction.entries()) {
-      if (comment.commentId === commentId) {
-        for (const [index2, reaction] of comment.reactions.entries()) {
-          if (reaction.userName === userName) {
-            newCommentReaction[index].reactions.splice(index2, 1);
-            this.comments = newCommentReaction;
-            POSTS.put(this.getPostId(), this.toString());
-            return;
-          } else if (comment.commentId) {
-            throw new ValidationError('User has not reacted to this comment', 400);
-          }
-        }
+      if (
+        comment.commentId === commentId &&
+        comment.reactions[type as '😀'].includes(userName)
+      ) {
+        newCommentReaction[index].reactions[type as '😀'].splice(
+          newCommentReaction[index].reactions[type as '😀'].indexOf(userName, 1),
+        );
+        this.comments = newCommentReaction;
+        POSTS.put(this.getPostId(), this.toString());
+        return;
+      } else if (comment.commentId === commentId) {
+        throw new ValidationError('User has not reacted to this comment', 400);
       }
     }
     throw new ValidationError('Comment not found', 404);
