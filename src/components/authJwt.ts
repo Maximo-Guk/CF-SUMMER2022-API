@@ -1,7 +1,7 @@
 // Fetch GET Implementation
 export default async function verifyJwt(userName: string): Promise<unknown> {
   // API Endpoint
-  const url = `https://adipex-fraser-models-yugoslavia.trycloudflare.com/auth/${userName}`;
+  const url = `https://march-sc-choose-email.trycloudflare.com/auth/${userName}`;
   const response = await fetch(url, {
     method: 'GET',
     headers: {

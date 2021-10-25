@@ -22,6 +22,7 @@ const router = Router();
 //cors headers
 function cors(response: Response) {
   response.headers.set('Access-Control-Allow-Origin', '*');
+  response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Allow-Methods', 'POST, GET, DELETE');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   response.headers.set('Access-Control-Max-Age', '86400');
@@ -87,10 +88,10 @@ router.all('*', async (request: any) => {
       const verificationResponse: any = await verifyJwt(jwtToken);
       request.locals = verificationResponse;
     } else {
-      return cors(new Response('Missing authentication header!'));
+      return cors(new Response('Missing authentication header!', { status: 401 }));
     }
   } catch (error) {
-    return cors(new Response('Invalid Token!'));
+    return cors(new Response('Invalid Token!', { status: 401 }));
   }
 });
 
