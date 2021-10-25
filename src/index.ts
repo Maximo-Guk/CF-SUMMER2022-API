@@ -3,6 +3,7 @@ import Users from './classes/Users';
 import Posts from './classes/Posts';
 import requestPostId from './types/requestPostId';
 import requestCommentId from './types/requestCommentId';
+import requestLocals from './types/requestLocals';
 import ValidationError from './classes/ValidationError';
 import validateJson from './components/validateJson';
 import validateParametersCheckMissing from './components/validateParametersCheckMissing';
@@ -93,6 +94,11 @@ router.all('*', async (request: any) => {
   }
 });
 
+//verify user
+router.get('/verify', async (request: requestLocals) => {
+  return cors(new Response(JSON.stringify({ userName: request.locals.userName })));
+});
+
 //logout user
 router.get('/users/:userName/logout', async (request: any) => {
   const cookie = request.headers.get('Cookie');
@@ -103,7 +109,7 @@ router.get('/users/:userName/logout', async (request: any) => {
 });
 
 //create posts
-router.post('/posts', async (request: any) => {
+router.post('/posts', async (request: requestLocals) => {
   try {
     const requestJson = await validateJson(request);
 
