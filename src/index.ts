@@ -266,7 +266,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
     );
 
     await post.addReaction(request.locals.userName, reactionType);
-    return cors(new Response('Sucessfully upvoted post!'));
+    return cors(new Response('Sucessfully reacted to post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
       return cors(new Response(error.message, { status: error.code }));
