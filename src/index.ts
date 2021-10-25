@@ -106,13 +106,20 @@ router.post('/posts', async (request: any) => {
       verifyPhotoUpload(requestJson.photo);
     }
 
-    const validParams = ['title', 'userBackgroundColor', 'content', 'photo'];
+    const storedUser = await USERS.get(request.locals.userName);
+    if (!storedUser) {
+      return cors(new Response('No user with that userName found', { status: 404 }));
+    }
+    const parsedUser = JSON.parse(storedUser);
+    const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
+
+    const validParams = ['title', 'content', 'photo'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
     const newPost = new Posts(
       requestJson.title,
       request.locals.userName,
-      requestJson.userBackgroundColor,
+      user.getAvatarBackgroundColor(),
       requestJson.content,
       requestJson.photo,
       [],
