@@ -21,13 +21,20 @@ const router = Router();
 
 //cors headers
 function cors(response: Response) {
-  response.headers.set('Access-Control-Allow-Origin', 'ga-api.maximoguk.workers.dev');
+  response.headers.set(
+    'Access-Control-Allow-Origin',
+    'https://cf-summer-2022-nextjs.pages.dev',
+  );
   response.headers.set('Access-Control-Allow-Credentials', 'true');
   response.headers.set('Access-Control-Allow-Methods', 'POST, GET, DELETE');
   response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
   response.headers.set('Access-Control-Max-Age', '86400');
   return response;
 }
+
+router.options('*', () => {
+  return cors(new Response('All good!'));
+});
 
 //get all posts
 router.get('/posts', async () => {
