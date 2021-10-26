@@ -65,7 +65,7 @@ router.get('/users/:userName', async (request) => {
       const response = new Response('User has been registered!');
       response.headers.set(
         'set-cookie',
-        `token=${jwtToken}; path=/; SameSite=None; secure;`,
+        `token=${jwtToken}; Path=/; SameSite=None; secure;`,
       );
       return cors(response);
     }
@@ -115,7 +115,7 @@ router.get('/verify', async (request: requestLocals) => {
 router.get('/users/:userName/logout', async (request: any) => {
   const cookie = request.headers.get('Cookie');
   const response = new Response('Sucessfully logged out!');
-  response.headers.set('set-cookie', `${cookie}; max-age=0; Path=/;`);
+  response.headers.set('set-cookie', `${cookie}; max-age=0; Path=/; SameSite=None; secure;`);
   return cors(response);
 });
 
