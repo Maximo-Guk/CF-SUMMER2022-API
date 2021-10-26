@@ -345,7 +345,7 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
     const validParams = ['content'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
-    const storedUser = await POSTS.get(request.locals.userName);
+    const storedUser = await USERS.get(request.locals.userName);
     if (!storedUser) {
       return cors(new Response('User not found', { status: 404 }));
     }
