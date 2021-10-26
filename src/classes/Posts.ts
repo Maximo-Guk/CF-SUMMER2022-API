@@ -42,6 +42,10 @@ export default class Posts {
   private comments = [] as commentsTypes[];
   private createdAt: string;
 
+  // take note that postId is an optional parameter,
+  // when post object is first created it will not have postId,
+  // postId is only generated once constructed for the first time,
+  // later on, will be retrieved from KV so won't be optional anymore
   constructor(
     title: string,
     userName: string,
@@ -70,7 +74,7 @@ export default class Posts {
     this.createdAt = createdAt;
   }
 
-  //getters
+  // getters
   public getPostId(): string {
     return this.postId;
   }
@@ -101,7 +105,7 @@ export default class Posts {
   public getCreatedAt(): string {
     return this.createdAt;
   }
-  //setters
+  // setters
   public setTitle(title: string): void {
     this.title = title;
     POSTS.put(this.getPostId(), this.toString());
@@ -115,8 +119,9 @@ export default class Posts {
     POSTS.put(this.getPostId(), this.toString());
   }
 
-  //post upvoting
+  // post upvoting
 
+  // upvote post, each user can only upvote a post once
   public async addUpvote(userName: string): Promise<void> {
     const newUpvotes = this.getUpvotes();
     if (newUpvotes.includes(userName)) {
@@ -137,10 +142,11 @@ export default class Posts {
     POSTS.put(this.getPostId(), this.toString());
   }
 
-  //end of post upvoting
+  // end of post upvoting
 
-  //post reactions
+  // post reactions
 
+  // react to post with one of the valid emoji types, each user can react to post once with every emoji
   public async addReaction(userName: string, type: string): Promise<void> {
     const newReactions = this.getReactions();
     if (newReactions[type as '😀'].includes(userName)) {
@@ -151,6 +157,7 @@ export default class Posts {
     POSTS.put(this.getPostId(), this.toString());
   }
 
+  // remove reaction from post, type is passed in so we know which emoji they react with initally
   public async removeReaction(userName: string, type: string): Promise<void> {
     const newReactions = this.getReactions();
     if (!newReactions[type as '😀'].includes(userName)) {
@@ -161,11 +168,15 @@ export default class Posts {
     POSTS.put(this.getPostId(), this.toString());
   }
 
-  //end of post reactions
+  // end of post reactions
 
-  //comment section
+  // comment section
 
-  public async addComment(userName: string, userBackgroundColor: string, content: string): Promise<void> {
+  public async addComment(
+    userName: string,
+    userBackgroundColor: string,
+    content: string,
+  ): Promise<void> {
     const newComments = this.getComments();
     newComments.push({
       commentId: uuidv1(),
@@ -202,8 +213,9 @@ export default class Posts {
     throw new ValidationError('Comment not found', 404);
   }
 
-  //comment upvote
+  // comment upvote
 
+  // upvote comment by commentId and postId, each comment can only be upvoted once by each user
   public async addCommentUpVote(userName: string, commentId: string): Promise<void> {
     const newCommentUpVote = this.getComments();
     for (const [index, comment] of newCommentUpVote.entries()) {
@@ -236,10 +248,11 @@ export default class Posts {
     throw new ValidationError('Comment not found', 404);
   }
 
-  //end of comment upvote
+  // end of comment upvote
 
-  //comment reaction
+  // comment reaction
 
+  // react to comment by commentId and postId, user can react once with each reaction type
   public async addCommentReaction(
     userName: string,
     commentId: string,
@@ -286,9 +299,9 @@ export default class Posts {
     throw new ValidationError('Comment not found', 404);
   }
 
-  //end of comment reaction
+  // end of comment reaction
 
-  //end of comment section
+  // end of comment section
 
   toString(): string {
     return JSON.stringify({

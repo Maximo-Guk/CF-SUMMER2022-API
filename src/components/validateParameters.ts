@@ -1,5 +1,7 @@
 import ValidationError from '../classes/ValidationError';
 
+// Validate parameters by specifying an array of valid params
+// and checking them with user's parameters
 export default function validateParameters(
   inputValidParams: string[],
   queryParameters: string[],

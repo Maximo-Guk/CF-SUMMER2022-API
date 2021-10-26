@@ -1,5 +1,6 @@
 import ValidationError from '../classes/ValidationError';
 
+// Make sure photo upload is of type base64 and is png, jpeg or gif
 export default function verifyPhotoUpload(photoBase64Encoded: string): void {
   try {
     const splitBase64 = photoBase64Encoded.split(';base64,');

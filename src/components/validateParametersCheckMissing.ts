@@ -1,6 +1,8 @@
 import ValidationError from '../classes/ValidationError';
 import validateParameters from './validateParameters';
 
+// Uses validateParameters function to check validation of parameters
+// As well as checks if any are missing
 export default function validateParametersCheckMissing(
   inputValidParams: string[],
   queryParameters: string[],

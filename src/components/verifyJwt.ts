@@ -1,4 +1,5 @@
 // Fetch GET Implementation
+// Verifies JWT with authentication server
 export default async function verifyJwt(idToken: string): Promise<unknown> {
   // API Endpoint
   const url = 'https://lamp-itself-nsw-vocals.trycloudflare.com/verify';

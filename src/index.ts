@@ -19,7 +19,7 @@ declare const USERS: KVNamespace;
 // Create a new router
 const router = Router();
 
-//cors headers
+// cors headers
 function cors(response: Response) {
   response.headers.set(
     'Access-Control-Allow-Origin',
@@ -32,11 +32,12 @@ function cors(response: Response) {
   return response;
 }
 
+// return 200 when client is getting server options during cors
 router.options('*', () => {
   return cors(new Response('All good!'));
 });
 
-//get all posts
+// get all posts
 router.get('/posts', async () => {
   const listOfKeys = await POSTS.list();
   const listOfPosts = [];
@@ -46,7 +47,7 @@ router.get('/posts', async () => {
   return cors(new Response('[' + listOfPosts.toString() + ']'));
 });
 
-//register user
+// register user if no user under that username, otherwise return user
 router.get('/users/:userName', async (request) => {
   if (request.params && request.params.userName) {
     const storedUser = await USERS.get(request.params.userName);
@@ -74,14 +75,14 @@ router.get('/users/:userName', async (request) => {
   }
 });
 
-//verify postId middleware
+// verify postId middleware
 router.all('/posts/:postId', (request: requestPostId) => {
   if (!uuidValidateV1(request.params.postId)) {
     return cors(new Response('Invalid postId', { status: 400 }));
   }
 });
 
-//get post by postId
+// get post by postId
 router.get('/posts/:postId', async (request: requestPostId) => {
   const post = await POSTS.get(request.params.postId);
   if (!post) {
@@ -90,12 +91,13 @@ router.get('/posts/:postId', async (request: requestPostId) => {
   return cors(new Response(post));
 });
 
-//verify jwt token
+// middleware that verifies jwt token by sending jwt to go authentication server over cloudflare tunnel
 router.all('*', async (request: any) => {
   try {
     if (request.headers.get('Cookie')) {
       const cookie = request.headers.get('Cookie');
       const jwtToken = cookie.split('token=')[1].split(';')[0];
+      // verifyjwt is a GET http request
       const verificationResponse: any = await verifyJwt(jwtToken);
       request.locals = verificationResponse;
     } else {
@@ -106,20 +108,23 @@ router.all('*', async (request: any) => {
   }
 });
 
-//verify user
+// verify user, since user has already been verified by middleware, simply return userName as response
 router.get('/verify', async (request: requestLocals) => {
   return cors(new Response(JSON.stringify({ userName: request.locals.userName })));
 });
 
-//logout user
+// logout user, set cookie to max-age 0
 router.get('/users/:userName/logout', async (request: any) => {
   const cookie = request.headers.get('Cookie');
   const response = new Response('Sucessfully logged out!');
-  response.headers.set('set-cookie', `${cookie}; max-age=0; Path=/; SameSite=None; secure;`);
+  response.headers.set(
+    'set-cookie',
+    `${cookie}; max-age=0; Path=/; SameSite=None; secure;`,
+  );
   return cors(response);
 });
 
-//create posts
+// create posts, takes in title, content and optional photo parameter, creats post with these params
 router.post('/posts', async (request: requestLocals) => {
   try {
     const requestJson = await validateJson(request);
@@ -168,7 +173,7 @@ router.post('/posts', async (request: requestLocals) => {
   }
 });
 
-//delete post by postId
+// delete post by postId if user is author of that post
 router.delete('/posts/:postId', async (request: requestPostId) => {
   const storedPost = await POSTS.get(request.params.postId);
   if (!storedPost) {
@@ -197,7 +202,7 @@ router.delete('/posts/:postId', async (request: requestPostId) => {
   }
 });
 
-//upvote post
+// upvote post, each user can only upvote a post once
 router.post('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
@@ -228,7 +233,7 @@ router.post('/posts/:postId/upvote', async (request: requestPostId) => {
   }
 });
 
-//remove upvote post
+// remove upvote from post
 router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
@@ -259,7 +264,8 @@ router.delete('/posts/:postId/upvote', async (request: requestPostId) => {
   }
 });
 
-//react to post
+// react to post with one of the valid emoji types, this validation is done by validateReactionType.
+// each user can react to post once with every emoji
 router.post('/posts/:postId/react', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
@@ -267,6 +273,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
     const validParams = ['type'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
+    // can't use .split("") because emoji
     const reactionType = requestJson.type.split(/(?!$)/u)[0];
     validateReactionType(reactionType);
 
@@ -298,7 +305,7 @@ router.post('/posts/:postId/react', async (request: requestPostId) => {
   }
 });
 
-//remove reaction to post
+// remove reaction from post, type is passed in so we know which emoji they react with initally
 router.delete('/posts/:postId/react', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
@@ -306,6 +313,7 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
     const validParams = ['type'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
+    // can't use .split("") because emoji
     const reactionType = requestJson.type.split(/(?!$)/u)[0];
     validateReactionType(reactionType);
 
@@ -337,7 +345,7 @@ router.delete('/posts/:postId/react', async (request: requestPostId) => {
   }
 });
 
-//comment on post
+// comment on post needs content parameter
 router.post('/posts/:postId/comments', async (request: requestPostId) => {
   try {
     const requestJson = await validateJson(request);
@@ -384,14 +392,14 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
   }
 });
 
-//verify postId middleware
+// verify postId middleware
 router.all('/posts/:postId/comments/:commentId', (request: requestCommentId) => {
   if (!uuidValidateV1(request.params.commentId)) {
     return cors(new Response('Invalid commentId', { status: 400 }));
   }
 });
 
-//delete post comment by commentId
+// delete post comment by commentId and postId
 router.delete('/posts/:postId/comments/:commentId', async (request: requestCommentId) => {
   try {
     const storedPost = await POSTS.get(request.params.postId);
@@ -422,7 +430,7 @@ router.delete('/posts/:postId/comments/:commentId', async (request: requestComme
   }
 });
 
-//upvote comment by commentId
+// upvote comment by commentId and postId, each comment can only be upvoted once by each user
 router.post(
   '/posts/:postId/comments/:commentId/upvote',
   async (request: requestCommentId) => {
@@ -456,7 +464,7 @@ router.post(
   },
 );
 
-//remove comment upvote by commentId
+// remove comment upvote by commentId and postId
 router.delete(
   '/posts/:postId/comments/:commentId/upvote',
   async (request: requestCommentId) => {
@@ -490,7 +498,7 @@ router.delete(
   },
 );
 
-//react to comment by commentId
+// react to comment by commentId and postId, user can react once with each reaction type
 router.post(
   '/posts/:postId/comments/:commentId/react',
   async (request: requestCommentId) => {
@@ -536,7 +544,8 @@ router.post(
   },
 );
 
-//remove reaction to comment by commentId
+// remove reaction to comment by commentId and postId
+// type is specified so we know what type they initally reacted with
 router.delete(
   '/posts/:postId/comments/:commentId/react',
   async (request: requestCommentId) => {
