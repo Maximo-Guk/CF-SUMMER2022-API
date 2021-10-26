@@ -165,12 +165,12 @@ export default class Posts {
 
   //comment section
 
-  public async addComment(userName: string, content: string): Promise<void> {
+  public async addComment(userName: string, userBackgroundColor: string, content: string): Promise<void> {
     const newComments = this.getComments();
     newComments.push({
       commentId: uuidv1(),
       userName: userName,
-      userBackgroundColor: this.getUserBackgroundColor(),
+      userBackgroundColor: userBackgroundColor,
       content: content,
       upVotes: [],
       reactions: {

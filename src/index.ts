@@ -345,6 +345,13 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
     const validParams = ['content'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
 
+    const storedUser = await POSTS.get(request.locals.userName);
+    if (!storedUser) {
+      return cors(new Response('User not found', { status: 404 }));
+    }
+    const parsedUser = JSON.parse(storedUser);
+    const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
+
     const storedPost = await POSTS.get(request.params.postId);
     if (!storedPost) {
       return cors(new Response('No post found under that id', { status: 404 }));
@@ -364,7 +371,11 @@ router.post('/posts/:postId/comments', async (request: requestPostId) => {
       request.params.postId,
     );
 
-    await post.addComment(request.locals.userName, requestJson.content);
+    await post.addComment(
+      request.locals.userName,
+      user.getAvatarBackgroundColor(),
+      requestJson.content,
+    );
     return cors(new Response('Sucessfully commented on post!'));
   } catch (error) {
     if (error instanceof ValidationError) {
