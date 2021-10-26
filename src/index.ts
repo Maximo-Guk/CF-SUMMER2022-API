@@ -95,7 +95,7 @@ router.all('*', async (request: any) => {
   try {
     if (request.headers.get('Cookie')) {
       const cookie = request.headers.get('Cookie');
-      const jwtToken = cookie.split('token=')[1];
+      const jwtToken = cookie.split('token=')[1].split(';')[0];
       const verificationResponse: any = await verifyJwt(jwtToken);
       request.locals = verificationResponse;
     } else {
