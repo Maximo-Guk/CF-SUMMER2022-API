@@ -198,7 +198,7 @@ router.delete('/posts/:postId', async (request: requestPostId) => {
     await POSTS.delete(request.params.postId);
     return cors(new Response('Sucessfully deleted post!'));
   } else {
-    return cors(new Response("You can't delete posts you don't own!"));
+    return cors(new Response("You can't delete posts you don't own!", { status: 401 }));
   }
 });
 
