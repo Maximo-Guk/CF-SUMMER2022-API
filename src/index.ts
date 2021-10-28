@@ -61,7 +61,7 @@ router.get('/users/:userName', async (request) => {
       const jwtToken = cookie.split('token=')[1].split(';')[0];
 
       const user = new Users(request.params.userName);
-      USERS.put(request.params.userName, user.toString());
+      await USERS.put(request.params.userName, user.toString());
 
       const response = new Response('User has been registered!');
       response.headers.set(
@@ -164,7 +164,7 @@ router.post('/posts', async (request: requestLocals) => {
       Date.now().toString(),
     );
 
-    POSTS.put(newPost.getPostId(), newPost.toString());
+    await POSTS.put(newPost.getPostId(), newPost.toString());
     return cors(new Response('Sucessfully created new post!'));
   } catch (error) {
     if (error instanceof ValidationError) {

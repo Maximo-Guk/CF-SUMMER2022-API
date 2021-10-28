@@ -106,17 +106,17 @@ export default class Posts {
     return this.createdAt;
   }
   // setters
-  public setTitle(title: string): void {
+  public async setTitle(title: string): Promise<void> {
     this.title = title;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
-  public setContent(content: string): void {
+  public async setContent(content: string): Promise<void> {
     this.content = content;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
-  public setPhoto(photo: string): void {
+  public async setPhoto(photo: string): Promise<void> {
     this.photo = photo;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   // post upvoting
@@ -129,7 +129,7 @@ export default class Posts {
     }
     newUpvotes.push(userName);
     this.upVotes = newUpvotes;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   public async removeUpvote(userName: string): Promise<void> {
@@ -139,7 +139,7 @@ export default class Posts {
     }
     newUpvotes.splice(newUpvotes.indexOf(userName, 1));
     this.upVotes = newUpvotes;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   // end of post upvoting
@@ -154,7 +154,7 @@ export default class Posts {
     }
     newReactions[type as '😀'].push(userName);
     this.reactions = newReactions;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   // remove reaction from post, type is passed in so we know which emoji they react with initally
@@ -165,7 +165,7 @@ export default class Posts {
     }
     newReactions[type as '😀'].splice(newReactions[type as '😀'].indexOf(userName, 1));
     this.reactions = newReactions;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   // end of post reactions
@@ -195,7 +195,7 @@ export default class Posts {
       createdAt: Date.now().toString(),
     });
     this.comments = newComments;
-    POSTS.put(this.getPostId(), this.toString());
+    await POSTS.put(this.getPostId(), this.toString());
   }
 
   public async removeComment(userName: string, commentId: string): Promise<void> {
@@ -204,7 +204,7 @@ export default class Posts {
       if (comment.commentId === commentId && comment.userName === userName) {
         newComments.splice(index, 1);
         this.comments = newComments;
-        POSTS.put(this.getPostId(), this.toString());
+        await POSTS.put(this.getPostId(), this.toString());
         return;
       } else if (comment.commentId === commentId) {
         throw new ValidationError('User has not commented', 400);
@@ -224,7 +224,7 @@ export default class Posts {
       } else if (comment.commentId === commentId) {
         newCommentUpVote[index].upVotes.push(userName);
         this.comments = newCommentUpVote;
-        POSTS.put(this.getPostId(), this.toString());
+        await POSTS.put(this.getPostId(), this.toString());
         return;
       }
     }
@@ -239,7 +239,7 @@ export default class Posts {
           newCommentUpVote[index].upVotes.indexOf(userName, 1),
         );
         this.comments = newCommentUpVote;
-        POSTS.put(this.getPostId(), this.toString());
+        await POSTS.put(this.getPostId(), this.toString());
         return;
       } else if (comment.commentId === commentId) {
         throw new ValidationError('User has not upvoted this comment', 400);
@@ -268,7 +268,7 @@ export default class Posts {
       } else if (comment.commentId === commentId) {
         newCommentReaction[index].reactions[type as '😀'].push(userName);
         this.comments = newCommentReaction;
-        POSTS.put(this.getPostId(), this.toString());
+        await POSTS.put(this.getPostId(), this.toString());
         return;
       }
     }
@@ -290,7 +290,7 @@ export default class Posts {
           newCommentReaction[index].reactions[type as '😀'].indexOf(userName, 1),
         );
         this.comments = newCommentReaction;
-        POSTS.put(this.getPostId(), this.toString());
+        await POSTS.put(this.getPostId(), this.toString());
         return;
       } else if (comment.commentId === commentId) {
         throw new ValidationError('User has not reacted to this comment', 400);
