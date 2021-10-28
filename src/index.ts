@@ -91,7 +91,9 @@ router.get('/posts/:postId', async (request: requestPostId) => {
   return cors(new Response(post));
 });
 
-// create posts, takes in title, content and optional photo parameter, creates post with these params
+// create posts, takes in title, content and optional photo parameter as well as username, creates post with these params
+// if user account doesn't exist on post creation, create one for them if username is not taken.
+// otherwise if the jwt is valid and the jwt username and request username parameter match, proceed.
 router.post('/posts', async (request: any) => {
   try {
     // create response "success object", allowing us to set headers for it
