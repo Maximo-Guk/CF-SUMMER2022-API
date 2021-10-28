@@ -91,6 +91,92 @@ router.get('/posts/:postId', async (request: requestPostId) => {
   return cors(new Response(post));
 });
 
+// create posts, takes in title, content and optional photo parameter, creates post with these params
+router.post('/posts', async (request: any) => {
+  try {
+    // create response "success object", allowing us to set headers for it
+    let response = new Response('success');
+    let user;
+    let verificationResponse = '';
+
+    const requestJson = await validateJson(request);
+
+    if (!requestJson.photo) {
+      requestJson.photo = '';
+    } else {
+      verifyPhotoUpload(requestJson.photo);
+    }
+
+    const validParams = ['title', 'content', 'photo', 'username'];
+    validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    // verify jwt if request headers contain cookie
+    try {
+      if (request.headers.get('Cookie')) {
+        const cookie = request.headers.get('Cookie');
+        const jwtToken = cookie.split('token=')[1].split(';')[0];
+        // verifyjwt is a GET http request
+        verificationResponse = await verifyJwt(jwtToken);
+      }
+    } catch (error) {
+      return cors(new Response('Invalid Token!', { status: 401 }));
+    }
+
+    const storedUser = await USERS.get(requestJson.username);
+    // if user not found set-cookie for that user
+    if (!storedUser) {
+      const authResponse: any = await authJwt(requestJson.username);
+      const cookie = authResponse.headers.get('set-cookie');
+      const jwtToken = cookie.split('token=')[1].split(';')[0];
+
+      user = new Users(requestJson.username);
+      await USERS.put(requestJson.username, user.toString());
+
+      response.headers.set(
+        'set-cookie',
+        `token=${jwtToken}; Path=/; SameSite=None; HttpOnly; secure;`,
+      );
+    } else {
+      // if user does exist check if JWT user is equal to the user in posted json
+      const parsedUser = JSON.parse(storedUser);
+      user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
+      if (requestJson.username !== verificationResponse) {
+        return cors(
+          new Response('You cannot make posts that are not under your name', {
+            status: 401,
+          }),
+        );
+      }
+    }
+
+    const newPost = new Posts(
+      requestJson.title,
+      requestJson.username,
+      user.getAvatarBackgroundColor(),
+      requestJson.content,
+      requestJson.photo,
+      [],
+      {
+        '😀': [],
+        '😂': [],
+        '😭': [],
+        '🥰': [],
+        '😍': [],
+        '🤢': [],
+      },
+      [],
+      Date.now().toString(),
+    );
+
+    await POSTS.put(newPost.getPostId(), newPost.toString());
+    return cors(response);
+  } catch (error) {
+    if (error instanceof ValidationError) {
+      return cors(new Response(error.message, { status: error.code }));
+    }
+  }
+});
+
 // middleware that verifies jwt token by sending jwt to go authentication server over cloudflare tunnel
 router.all('*', async (request: any) => {
   try {
@@ -124,63 +210,6 @@ router.get('/users/:userName/logout', async (request: any) => {
     `${cookie}; max-age=0; Path=/; SameSite=None; HttpOnly; secure;`,
   );
   return cors(response);
-});
-
-// create posts, takes in title, content and optional photo parameter, creats post with these params
-router.post('/posts', async (request: requestLocals) => {
-  try {
-    const requestJson = await validateJson(request);
-
-    if (!requestJson.photo) {
-      requestJson.photo = '';
-    } else {
-      verifyPhotoUpload(requestJson.photo);
-    }
-
-    const storedUser = await USERS.get(request.locals.userName);
-    if (!storedUser) {
-      return cors(new Response('No user with that userName found', { status: 404 }));
-    }
-    const parsedUser = JSON.parse(storedUser);
-    const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
-
-    const validParams = ['title', 'content', 'photo', 'username'];
-    validateParametersCheckMissing(validParams, Object.keys(requestJson));
-
-    if (requestJson.username !== request.locals.userName) {
-      return cors(
-        new Response('You cannot make posts that are not under your name', {
-          status: 401,
-        }),
-      );
-    }
-
-    const newPost = new Posts(
-      requestJson.title,
-      request.locals.userName,
-      user.getAvatarBackgroundColor(),
-      requestJson.content,
-      requestJson.photo,
-      [],
-      {
-        '😀': [],
-        '😂': [],
-        '😭': [],
-        '🥰': [],
-        '😍': [],
-        '🤢': [],
-      },
-      [],
-      Date.now().toString(),
-    );
-
-    await POSTS.put(newPost.getPostId(), newPost.toString());
-    return cors(new Response('success'));
-  } catch (error) {
-    if (error instanceof ValidationError) {
-      return cors(new Response(error.message, { status: error.code }));
-    }
-  }
 });
 
 // delete post by postId if user is author of that post
