@@ -66,7 +66,7 @@ router.get('/users/:userName', async (request) => {
       const response = new Response('User has been registered!');
       response.headers.set(
         'set-cookie',
-        `token=${jwtToken}; Path=/; SameSite=None; secure;`,
+        `token=${jwtToken}; Path=/; SameSite=None; HttpOnly; secure;`,
       );
       return cors(response);
     }
@@ -121,7 +121,7 @@ router.get('/users/:userName/logout', async (request: any) => {
   const response = new Response('Sucessfully logged out!');
   response.headers.set(
     'set-cookie',
-    `${cookie}; max-age=0; Path=/; SameSite=None; secure;`,
+    `${cookie}; max-age=0; Path=/; SameSite=None; HttpOnly; secure;`,
   );
   return cors(response);
 });
