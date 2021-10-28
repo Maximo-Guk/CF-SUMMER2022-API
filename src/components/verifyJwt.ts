@@ -13,8 +13,8 @@ export default async function verifyJwt(idToken: string): Promise<unknown> {
     redirect: 'follow',
   });
   if (response.ok) {
-    return await response.json();
+    return await response.text();
   } else {
-    throw response;
+    throw await response.text();
   }
 }

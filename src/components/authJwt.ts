@@ -11,8 +11,8 @@ export default async function verifyJwt(userName: string): Promise<unknown> {
     redirect: 'follow',
   });
   if (response.ok) {
-    return response;
+    return await response.text();
   } else {
-    throw response;
+    throw await response.text();
   }
 }

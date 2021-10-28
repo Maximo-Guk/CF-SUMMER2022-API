@@ -99,7 +99,9 @@ router.all('*', async (request: any) => {
       const jwtToken = cookie.split('token=')[1].split(';')[0];
       // verifyjwt is a GET http request
       const verificationResponse: any = await verifyJwt(jwtToken);
-      request.locals = verificationResponse;
+      request.locals = {
+        userName: verificationResponse,
+      };
     } else {
       return cors(new Response('Missing authentication header!', { status: 401 }));
     }
