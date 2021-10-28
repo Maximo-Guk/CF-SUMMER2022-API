@@ -112,7 +112,7 @@ router.all('*', async (request: any) => {
 
 // verify user, since user has already been verified by middleware, simply return userName as response
 router.get('/verify', async (request: requestLocals) => {
-  return cors(new Response(JSON.stringify({ userName: request.locals.userName })));
+  return cors(new Response(request.locals.userName));
 });
 
 // logout user, set cookie to max-age 0
@@ -144,8 +144,16 @@ router.post('/posts', async (request: requestLocals) => {
     const parsedUser = JSON.parse(storedUser);
     const user = new Users(parsedUser.userName, parsedUser.avatarBackgroundColor);
 
-    const validParams = ['title', 'content', 'photo'];
+    const validParams = ['title', 'content', 'photo', 'username'];
     validateParametersCheckMissing(validParams, Object.keys(requestJson));
+
+    if (requestJson.username !== request.locals.userName) {
+      return cors(
+        new Response('You cannot make posts that are not under your name', {
+          status: 401,
+        }),
+      );
+    }
 
     const newPost = new Posts(
       requestJson.title,
@@ -167,7 +175,7 @@ router.post('/posts', async (request: requestLocals) => {
     );
 
     await POSTS.put(newPost.getPostId(), newPost.toString());
-    return cors(new Response('Sucessfully created new post!'));
+    return cors(new Response('success'));
   } catch (error) {
     if (error instanceof ValidationError) {
       return cors(new Response(error.message, { status: error.code }));
